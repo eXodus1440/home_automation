@@ -1,0 +1,30 @@
+---
+version: '2'
+
+services:
+  Portainer:
+    container_name: portainer
+    image: portainer/portainer:latest
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 9000:9000
+      - 8000:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./portainer:/data
+  #    - /share/CACHE/Containers/Portainer/live/<redacted>:/certs/live/<redacted>:ro \
+  #    - /share/CACHE/Containers/Portainer/archive/<redacted>:/certs/archive/<redacted>:ro \
+  
+  Watchtower:
+    container_name: watchtower
+    image: v2tec/watchtower:latest
+    restart: always
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    #  - /root/.docker/config.json:/config.json
+    command: --interval 600

@@ -1,0 +1,134 @@
+---
+version: '2'
+
+services:
+  Home-Assistant:
+    container_name: home-assistant
+    image: homeassistant/home-assistant:latest
+    depends_on:
+      - mqtt
+      - zigbee2mqtt
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 8123:8123
+    volumes:
+      - ./home-assistant:/config
+    network_mode: host
+  
+  mqtt:
+    container_name: mqtt
+    image: eclipse-mosquitto:latest
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 1883:1883 
+      - 9001:9001
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  zigbee2mqtt:
+    container_name: z2m
+    image: koenkk/zigbee2mqtt:latest
+    depends_on:
+      - mqtt
+    restart: always
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ./zigbee2mqtt:/app/data
+  #    - /run/udev:/run/udev:ro
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    network_mode: host
+  #  privileged: true
+
+  zigbee2mqtt-assistant:
+    container_name: z2m-assistant
+    image: carldebilly/zigbee2mqttassistant:latest
+    depends_on:
+      - zigbee2mqtt
+      - mqtt
+    restart: always
+    environment:
+      - TZ=Europe/London
+      - Z2MA_SETTINGS__MQTTSERVER=mqtt
+    ports:
+      - 8880:80
+    
+  node-red:
+    container_name: node-red
+    image: nodered/node-red:latest
+    depends_on:
+      - mqtt
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 1880:1880
+    volumes:
+      - ./node-red:/data
+
+
+#docker run -it -v /share/Container/node-red:/data -e TZ=Europe/London -p 1880:1880 nodered/node-red:latest node-red
+
+#docker run -it -v /share/Container/node-red:/data alpine alpine
+
+  #Influxdb:
+  #Grafana:
+  #Prometheus
+
+  blackbox:
+    container_name: blackbox-exporter
+    image: prom/blackbox-exporter:master
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 9115:9115
+    volumes:
+      - ./blackbox:/config
+
+  TasmoAdmin:
+    container_name: tasmo-admin
+    image: raymondmm/tasmoadmin:latest
+    restart: always
+    environment:
+      - TZ=Europe/London
+    ports:
+      - 8124:80
+    volumes:
+      - ./tasmo-admin:/data
+
+  #letsencrypt:
+  #  container_name: letsencrypt
+  #  image: linuxserver/letsencrypt:latest
+  #  cap_add:
+  #    - NET_ADMIN
+  #  environment:
+  #    - PUID=1000
+  #    - PGID=1000
+  #    - TZ=Europe/London
+  #    - URL=yourdomain.url
+  #    - SUBDOMAINS=www,
+  #    - VALIDATION=http
+  #    - DNSPLUGIN=cloudflare #optional
+  #    - DUCKDNSTOKEN=<token> #optional
+  #    - EMAIL=<e-mail> #optional
+  #    - DHLEVEL=2048 #optional
+  #    - ONLY_SUBDOMAINS=false #optional
+  #    - EXTRA_DOMAINS=<extradomains> #optional
+  #    - STAGING=false #optional
+  #  volumes:
+  #    - ./letsencrypt:/config
+  #  ports:
+  #    - 443:443
+  #    - 80:80 #optional
+  #  restart: unless-stopped
+
+
+  #docker run -it -v $(pwd)/data:/app/data --device=/dev/ttyACM0 -e TZ=Europe/London -v /run/udev:/run/udev:ro --privileged=true koenkk/zigbee2mqtt zigbee2mqtt
